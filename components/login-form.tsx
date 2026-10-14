@@ -44,9 +44,7 @@ export function LoginForm({
   async function onSubmit(values: LoginFormValues) {
     try {
       // Demo only: replace this with your authentication API.
-      console.log("Login submitted:", {
-        username: values.username,
-      });
+      console.log("Login submitted:", { username: values.username });
 
       toast.success("Login form submitted", {
         description: `Username: ${values.username}`,
@@ -61,7 +59,6 @@ export function LoginForm({
       toast.error(String(errors.username.message));
       return;
     }
-
     if (errors.password?.message) {
       toast.error(String(errors.password.message));
     }
@@ -72,57 +69,66 @@ export function LoginForm({
       <form
         onSubmit={form.handleSubmit(onSubmit, onInvalid)}
         className={cn(
-          "mx-auto flex w-full max-w-sm flex-col gap-6",
-          "sm:max-w-md lg:max-w-lg",
+          "mx-auto flex w-full min-w-0 max-w-sm flex-col gap-5",
+          "px-4 sm:px-0",
           className,
         )}
         {...props}
       >
-        <div className="space-y-2">
-          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
-            Sign in
-          </h1>
+        {/* UC Logo */}
+        <div className="mb-2 flex justify-center lg:hidden">
+          <div
+            className="flex size-35 items-center justify-center rounded-full
+               border-4 border-green-100
+               bg-gradient-to-br from-green-600 to-green-800
+               text-4xl font-extrabold tracking-wider text-white
+               shadow-lg shadow-green-900/20
+               ring-2 ring-green-700/20"
+            role="img"
+            aria-label="UC logo"
+          >
+            UC
+          </div>
+        </div>
 
-          <p className="text-sm text-muted-foreground">
+        {/* Heading */}
+        <div className="space-y-2">
+          <h1 className="text-2xl font-bold tracking-tight">Sign in</h1>
+          <p className="text-sm leading-relaxed text-muted-foreground">
             Use your student number or staff username.
           </p>
         </div>
 
+        {/* Form Fields */}
         <div className="space-y-5">
-          {/* Username field */}
           <FormField
             control={form.control}
             name="username"
             render={({ field }) => (
-              <FormItem>
+              <FormItem className="min-w-0 space-y-2">
                 <FormLabel>Student No. / Username</FormLabel>
-
                 <FormControl>
                   <Input
                     {...field}
                     placeholder="Enter your student number"
                     autoComplete="username"
-                    className="h-11"
+                    className="h-11 w-full text-base"
                   />
                 </FormControl>
-
-                <FormDescription>
+                <FormDescription className="text-xs leading-relaxed">
                   Student number format: YYYY-NNNNN
                 </FormDescription>
-
                 <FormMessage />
               </FormItem>
             )}
           />
 
-          {/* Password field */}
           <FormField
             control={form.control}
             name="password"
             render={({ field }) => (
-              <FormItem>
+              <FormItem className="min-w-0 space-y-2">
                 <FormLabel>Password</FormLabel>
-
                 <div className="relative">
                   <FormControl>
                     <Input
@@ -130,14 +136,13 @@ export function LoginForm({
                       type={showPassword ? "text" : "password"}
                       placeholder="Enter your password"
                       autoComplete="current-password"
-                      className="h-11 pr-10"
+                      className="h-11 w-full pr-11 text-base"
                     />
                   </FormControl>
-
                   <button
                     type="button"
                     onClick={() => setShowPassword((previous) => !previous)}
-                    className="absolute inset-y-0 right-0 flex cursor-pointer items-center px-3 text-muted-foreground hover:text-foreground"
+                    className="absolute cursor-pointer inset-y-0 right-0 flex items-center justify-center px-5 text-muted-foreground hover:text-foreground"
                     aria-label={
                       showPassword ? "Hide password" : "Show password"
                     }
@@ -150,9 +155,7 @@ export function LoginForm({
                     )}
                   </button>
                 </div>
-
                 <FormMessage />
-
                 <div className="flex justify-end">
                   <a
                     href="/forgot-password"
@@ -166,6 +169,7 @@ export function LoginForm({
           />
         </div>
 
+        {/* Submit Button */}
         <Button
           type="submit"
           disabled={form.formState.isSubmitting}

@@ -1,0 +1,251 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model academic_program {
+  academicProgramId Int        @id @default(autoincrement())
+  programName       String     @db.VarChar(150)
+  departmentId      Int
+  department        department @relation(fields: [departmentId], references: [departmentId], map: "fk_academic_program_department")
+  student           student[]
+
+  @@index([departmentId], map: "fk_academic_program_department")
+}
+
+model administrator_user {
+  administratorUserId Int                           @id @default(autoincrement())
+  employeeNumber      String                        @unique(map: "employeeNumber") @db.VarChar(30)
+  lastName            String                        @db.VarChar(100)
+  firstName           String                        @db.VarChar(100)
+  departmentId        Int
+  position            String                        @db.VarChar(100)
+  officeRole          administrator_user_officeRole
+  department          department                    @relation(fields: [departmentId], references: [departmentId], map: "fk_administrator_user_department")
+  document_request    document_request[]
+  payment             payment[]
+  student_clearance   student_clearance[]
+  user_account        user_account[]
+
+  @@index([departmentId], map: "fk_administrator_user_department")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model course {
+  courseId           Int                  @id @default(autoincrement())
+  courseCode         String               @unique(map: "courseCode") @db.VarChar(30)
+  courseTitle        String               @db.VarChar(150)
+  units              Decimal              @db.Decimal(3, 1)
+  departmentId       Int
+  department         department           @relation(fields: [departmentId], references: [departmentId], map: "fk_course_department")
+  student_enrollment student_enrollment[]
+
+  @@index([departmentId], map: "fk_course_department")
+}
+
+model department {
+  departmentId       Int                  @id @default(autoincrement())
+  departmentName     String               @db.VarChar(100)
+  college            String               @db.VarChar(150)
+  academic_program   academic_program[]
+  administrator_user administrator_user[]
+  course             course[]
+  student_clearance  student_clearance[]
+
+  @@unique([departmentName, college], map: "departmentName")
+}
+
+model document_request {
+  documentRequestId     Int                     @id @default(autoincrement())
+  requestNumber         String                  @unique(map: "requestNumber") @db.VarChar(30)
+  studentId             Int
+  purpose               String?                 @db.VarChar(255)
+  status                document_request_status @default(PENDING)
+  dateFiled             DateTime                @default(now()) @db.DateTime(0)
+  dateReleased          DateTime?               @db.DateTime(0)
+  processedBy           Int?
+  administrator_user    administrator_user?     @relation(fields: [processedBy], references: [administratorUserId], map: "fk_document_request_processor")
+  student               student                 @relation(fields: [studentId], references: [studentId], map: "fk_document_request_student")
+  document_request_item document_request_item[]
+  payment               payment[]
+
+  @@index([processedBy], map: "fk_document_request_processor")
+  @@index([studentId], map: "fk_document_request_student")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model document_request_item {
+  documentRequestItemId Int              @id @default(autoincrement())
+  documentRequestId     Int
+  documentTypeId        Int
+  copies                Int              @default(1)
+  fee                   Decimal          @default(0.00) @db.Decimal(10, 2)
+  document_type         document_type    @relation(fields: [documentTypeId], references: [documentTypeId], map: "fk_document_request_item_document_type")
+  document_request      document_request @relation(fields: [documentRequestId], references: [documentRequestId], onDelete: Cascade, map: "fk_document_request_item_request")
+
+  @@unique([documentRequestId, documentTypeId], map: "uq_document_request_item")
+  @@index([documentTypeId], map: "fk_document_request_item_document_type")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model document_type {
+  documentTypeId        Int                     @id @default(autoincrement())
+  documentName          String                  @unique(map: "documentName") @db.VarChar(150)
+  defaultFee            Decimal                 @default(0.00) @db.Decimal(10, 2)
+  needsClearance        Boolean                 @default(false)
+  document_request_item document_request_item[]
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model payment {
+  paymentId             Int                   @id @default(autoincrement())
+  documentRequestId     Int
+  officialReceiptNumber String                @unique(map: "officialReceiptNumber") @db.VarChar(50)
+  amount                Decimal               @db.Decimal(10, 2)
+  paymentMethod         payment_paymentMethod
+  paidAt                DateTime              @default(now()) @db.DateTime(0)
+  postedBy              Int?
+  administrator_user    administrator_user?   @relation(fields: [postedBy], references: [administratorUserId], map: "fk_payment_cashier")
+  document_request      document_request      @relation(fields: [documentRequestId], references: [documentRequestId], map: "fk_payment_document_request")
+
+  @@index([postedBy], map: "fk_payment_cashier")
+  @@index([documentRequestId], map: "fk_payment_document_request")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model student {
+  studentId          Int                  @id @default(autoincrement())
+  studentNumber      String               @unique(map: "studentNumber") @db.VarChar(30)
+  lastName           String               @db.VarChar(100)
+  firstName          String               @db.VarChar(100)
+  middleName         String?              @db.VarChar(100)
+  academicProgramId  Int
+  yearLevel          Int                  @db.TinyInt
+  status             student_status       @default(ACTIVE)
+  email              String?              @db.VarChar(150)
+  document_request   document_request[]
+  academic_program   academic_program     @relation(fields: [academicProgramId], references: [academicProgramId], map: "fk_student_academic_program")
+  student_clearance  student_clearance[]
+  student_enrollment student_enrollment[]
+  user_account       user_account[]
+
+  @@index([academicProgramId], map: "fk_student_academic_program")
+}
+
+model student_clearance {
+  studentClearanceId Int                    @id @default(autoincrement())
+  studentId          Int
+  departmentId       Int
+  schoolYear         String                 @db.VarChar(20)
+  term               student_clearance_term
+  isCleared          Boolean                @default(false)
+  signedBy           Int?
+  signedAt           DateTime?              @db.DateTime(0)
+  remarks            String?                @db.VarChar(255)
+  department         department             @relation(fields: [departmentId], references: [departmentId], map: "fk_student_clearance_department")
+  administrator_user administrator_user?    @relation(fields: [signedBy], references: [administratorUserId], map: "fk_student_clearance_signatory")
+  student            student                @relation(fields: [studentId], references: [studentId], onDelete: Cascade, map: "fk_student_clearance_student")
+
+  @@unique([studentId, departmentId, schoolYear, term], map: "uq_student_clearance")
+  @@index([departmentId], map: "fk_student_clearance_department")
+  @@index([signedBy], map: "fk_student_clearance_signatory")
+}
+
+model student_enrollment {
+  studentEnrollmentId Int                     @id @default(autoincrement())
+  studentId           Int
+  courseId            Int
+  schoolYear          String                  @db.VarChar(20)
+  term                student_enrollment_term
+  grade               Decimal?                @db.Decimal(5, 2)
+  remarks             String?                 @db.VarChar(255)
+  course              course                  @relation(fields: [courseId], references: [courseId], map: "fk_student_enrollment_course")
+  student             student                 @relation(fields: [studentId], references: [studentId], onDelete: Cascade, map: "fk_student_enrollment_student")
+
+  @@unique([studentId, courseId, schoolYear, term], map: "uq_student_enrollment")
+  @@index([courseId], map: "fk_student_enrollment_course")
+}
+
+model system_audit_log {
+  systemAuditLogId BigInt        @id @default(autoincrement())
+  userAccountId    Int?
+  action           String        @db.VarChar(100)
+  tableName        String        @db.VarChar(100)
+  recordId         Int?
+  timestamp        DateTime      @default(now()) @db.DateTime(0)
+  ipAddress        String?       @db.VarChar(45)
+  user_account     user_account? @relation(fields: [userAccountId], references: [userAccountId], map: "fk_system_audit_log_user_account")
+
+  @@index([userAccountId], map: "fk_system_audit_log_user_account")
+}
+
+model user_account {
+  userAccountId       Int                 @id @default(autoincrement())
+  username            String              @unique(map: "username") @db.VarChar(100)
+  passwordHash        String              @db.VarChar(255)
+  role                user_account_role
+  studentId           Int?
+  administratorUserId Int?
+  isActive            Boolean             @default(true)
+  lastLogin           DateTime?           @db.DateTime(0)
+  system_audit_log    system_audit_log[]
+  administrator_user  administrator_user? @relation(fields: [administratorUserId], references: [administratorUserId], map: "fk_user_account_administrator")
+  student             student?            @relation(fields: [studentId], references: [studentId], map: "fk_user_account_student")
+
+  @@index([administratorUserId], map: "fk_user_account_administrator")
+  @@index([studentId], map: "fk_user_account_student")
+}
+
+enum user_account_role {
+  STUDENT
+  REGISTRAR
+  CASHIER
+  DEPARTMENT_HEAD
+  SYSTEM_ADMINISTRATOR
+}
+
+enum document_request_status {
+  PENDING
+  PROCESSING
+  FOR_PAYMENT
+  PAID
+  RELEASED
+  CANCELLED
+}
+
+enum payment_paymentMethod {
+  CASH
+  GCASH
+  BANK_TRANSFER
+  CARD
+}
+
+enum student_clearance_term {
+  FIRST
+  SECOND
+  SUMMER
+}
+
+enum student_enrollment_term {
+  FIRST
+  SECOND
+  SUMMER
+}
+
+enum administrator_user_officeRole {
+  REGISTRAR
+  CASHIER
+  DEPARTMENT_HEAD
+  SYSTEM_ADMINISTRATOR
+}
+
+enum student_status {
+  ACTIVE
+  INACTIVE
+  GRADUATED
+  SUSPENDED
+}
